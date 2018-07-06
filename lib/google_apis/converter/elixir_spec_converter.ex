@@ -38,14 +38,16 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         |> File.read!()
         |> Jason.decode!()
 
-      control = existing["definitions"]
-      sample = openapi["definitions"]
-      if Map.equal?(control, sample) do
-        IO.puts "same"
-      else
-        MapDiff.diff(control, sample)
-        |> IO.inspect
-      end
+      Enum.each(["parameters", "securityDefinitions", "externalDocs", "paths"], fn location ->
+        control = existing[location]
+        sample = openapi[location]
+        if Map.equal?(control, sample) do
+          IO.puts "same #{location}"
+        else
+          MapDiff.diff(control, sample)
+          |> IO.inspect
+        end
+      end)
     end
 
     # File.write(output_path, openapi)
@@ -168,7 +170,20 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp add_parameters(openapi, %{"parameters" => parameters}) do
-      Map.put(openapi, "parameters", %{})
+      global_parameters =
+        parameters
+        |> Enum.reduce(%{}, fn {name, parameter}, acc ->
+          Map.put acc, name, map_parameter(name, parameter)
+        end)
+
+      Map.put(openapi, "parameters", global_parameters)
+    end
+
+    defp map_parameter(name, %{"location" => location} = parameter) do
+      parameter
+      |> Map.take(["default", "type", "description", "required", "enum", "format", "repeated"])
+      |> Map.put("name", name)
+      |> Map.put("in", location)
     end
 
     defp add_security_definitions(openapi, %{"auth" => %{"oauth2" => %{"scopes" => scopes}}}) do
@@ -200,8 +215,104 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       Map.put(openapi, "tags", [])
     end
 
-    defp add_paths(openapi, _gdd) do
-      openapi
+    defp add_paths(openapi, %{"resources" => resources}) do
+      global_parameter_refs =
+        openapi
+        |> Map.get("parameters", %{})
+        |> Enum.map(fn {name, _} ->
+          %{"$ref" => "#/parameters/#{name}"}
+        end)
+
+      endpoints =
+        resources
+        |> Enum.map(fn {resource_name, resource} ->
+          methods =
+            resource
+            |> Map.get("methods", %{})
+            |> Map.values
+        end)
+        |> List.flatten
+
+      supports_media_upload = Enum.any?(endpoints, fn endpoint ->
+        Map.get(endpoint, "supportsMediaUpload")
+      end)
+
+      paths =
+        endpoints
+        |> Enum.reduce(%{}, fn %{"path" => path, "httpMethod" => method} = endpoint, acc ->
+          acc
+          |> Map.put_new(path, %{"parameters" => global_parameter_refs})
+          |> Map.update!(path, fn path_config ->
+            Map.put(path_config, String.downcase(method), map_endpoint(endpoint))
+          end)
+        end)
+
+      Map.put(openapi, "paths", paths)
+    end
+
+    defp map_endpoint(%{"id" => operation_id} = endpoint) do
+      endpoint
+      |> Map.take(["description"])
+      |> Map.put("operationId", operation_id)
+      |> update_endpoint_security(endpoint)
+      |> update_endpoint_responses(endpoint)
+      |> update_endpoint_parameters(endpoint)
+      |> update_endpoint_tags(endpoint)
+    end
+
+    defp update_endpoint_security(endpoint, %{"scopes" => scopes}) do
+      Map.put(endpoint, "security", %{
+        "Oauth2" => scopes
+      })
+    end
+    defp update_endpoint_security(endpoint, _) do
+      endpoint
+    end
+
+    defp update_endpoint_responses(endpoint, %{"response" => %{"$ref" => ref}}) do
+      Map.put(endpoint, "responses", %{
+        "200" => %{
+          "description" => "Successful response",
+          "schema" => %{
+            "$ref" => "#/definitions/#{ref}"
+          }
+        }
+      })
+    end
+    defp update_endpoint_responses(endpoint, _) do
+      Map.put(endpoint, "responses", %{
+        "200" => %{
+          "description" => "Successful response"
+        }
+      })
+    end
+
+    defp update_endpoint_parameters(endpoint, config) do
+      parameter_order = Map.get(config, "parameterOrder", [])
+      parameter_config = Map.get(config, "parameters", %{})
+
+      params =
+        Enum.map(parameter_order, fn name ->
+          map_parameter(name, Map.fetch!(parameter_config, name))
+        end)
+
+      if Map.has_key?(config, "request") do
+        params = params ++ [
+          %{
+            "in" => "body",
+            "name" => "body",
+            "schema" => %{
+              "$ref" => "#/definitions/#{config["request"]["$ref"]}"
+            }
+          }
+        ]
+      end
+
+      Map.put(endpoint, "parameters", params)
+    end
+
+    defp update_endpoint_tags(endpoint, _) do
+      endpoint
     end
 
     defp add_external_docs(openapi, %{"documentationLink" => url}) do
