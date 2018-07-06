@@ -31,6 +31,7 @@ use Mix.Config
 
 config :google_apis,
   spec_converter: GoogleApis.Converter.ApiSpecConverter,
+  spec_converter: GoogleApis.Converter.ElixirSpecConverter,
   client_generator: GoogleApis.Generator.SwaggerCli,
   swagger_cli_image: "swaggerapi/swagger-codegen-cli:v2.3.1",
   oauth_client: System.get_env("GOOGLE_CLIENT_ID"),
