@@ -13,5 +13,5 @@
 # limitations under the License.
 
 defmodule GoogleApis.Generator do
-  @callback generate_client(GoogleApis.ApiConfig.t) :: any()
+  @callback generate_client(GoogleApis.ApiConfig.t()) :: any()
 end

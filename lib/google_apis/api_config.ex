@@ -13,7 +13,6 @@
 # limitations under the License.
 
 defmodule GoogleApis.ApiConfig do
-
   defstruct [:name, :version, :url]
 
   def file(%{name: name, version: version}), do: "#{name}-#{version}.json"
