@@ -15,6 +15,10 @@
 defmodule GoogleApis.Discovery do
   require Logger
 
+  alias GoogleApis.ApiConfig
+  alias GoogleApi.Discovery.V1.Connection
+  alias GoogleApi.Discovery.V1.Api.Apis
+
   def fetch(""), do: {:error, "No URL"}
 
   def fetch(url) do
