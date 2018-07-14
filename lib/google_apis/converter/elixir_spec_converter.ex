@@ -29,9 +29,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       |> File.read!()
       |> Poison.decode!(as: %RestDescription{})
       |> OpenApi2.from_gdd()
-      |> IO.inspect
+      # |> IO.inspect
       # |> Jason.encode!()
+      # |> IO.inspect
 
+    IO.inspect openapi.definitions
+    IO.inspect openapi.paths
     # IO.inspect(openapi["definitions"])
 
     # if File.exists?(output) do
@@ -60,9 +63,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
   defmodule OpenApi2 do
     require Logger
 
-    alias OpenApi.V2.Model.{Swagger,Info,Contact,License,Definitions,Schema,ExternalDocumentation,Tag,SecurityScheme,Scopes,SecurityDefinitions}
+    # alias GoogleApi.Discovery.V1.Model.{JsonSchema,RestDescription}
+    alias GoogleApi.Discovery.V1.Model, as: Discovery
+    alias OpenApi.V2.Model.{Swagger,Info,Contact,License,Definitions,Schema,ExternalDocumentation,Tag,SecurityScheme,Scopes,SecurityDefinitions,Items}
 
-    def from_gdd(gdd) do
+    @spec from_gdd(Discovery.RestDescription.t()) :: Swagger.t()
+    def from_gdd(%Discovery.RestDescription{} = gdd) do
       %Swagger{swagger: "2.0"}
       |> add_info(gdd)
       |> add_host_info(gdd)
@@ -74,7 +80,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       |> add_external_docs(gdd)
     end
 
-    defp add_info(openapi, %{title: title, description: description, version: version}) do
+    defp add_info(openapi, %Discovery.RestDescription{title: title, description: description, version: version}) do
       Map.put(openapi, :info, %Info{
         title: title,
         description: description,
@@ -91,93 +97,74 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       })
     end
 
-    defp add_host_info(openapi, %{rootUrl: root_url}) do
+    defp add_host_info(openapi, %Discovery.RestDescription{rootUrl: root_url}) do
       %URI{host: host, path: base_path, scheme: scheme} = URI.parse(root_url)
-
-      openapi
-      |> Map.put(:host, host)
-      |> Map.put(:basePath, base_path)
-      |> Map.put(:schemes, [scheme])
+      %{openapi | host: host, basePath: base_path, schemes: [scheme]}
     end
 
-    defp add_definitions(openapi, %{schemas: schemas}) do
+    defp add_definitions(openapi, %Discovery.RestDescription{schemas: schemas}) do
       definitions =
         schemas
         |> Enum.reduce(%Definitions{}, fn {name, schema}, acc ->
-          Map.put(acc, name, schema_to_definition(schema))
+          Map.put(acc, name, map_property(schema))
         end)
 
       Map.put(openapi, :definitions, definitions)
     end
-    defp schema_to_definition(schema) do
-      data =
-        schema
-        |> Map.take([:type, :description, :properties, :default])
-        |> Map.update(:properties, %{}, fn properties ->
-          Enum.reduce(properties, %Schema{}, fn {name, config}, acc ->
-            Map.put(acc, name, map_property(config))
-          end)
-        end)
 
-    end
-    defp map_property(%{type: "object"} = property) do
-      property
-      |> Map.take([:default, :description, :type, :properties, :"$ref", :additionalProperties])
-      |> update_ref
-      |> update_properties
-      |> update_additional_properties
-    end
-    defp map_property(%{type: "array"} = property) do
-      property
-      |> Map.take([:default, :description, :items, :type, :"$ref"])
-      |> update_ref
-      |> update_items
-    end
-    defp map_property(property) do
-      property
-      |> Map.take([:default, :description, :format, :type, :properties, :"$ref"])
-      |> set_default_type
-      |> update_ref
-      |> update_format
-    end
-    defp set_default_type(%{"$ref": _} = property), do: property
-    defp set_default_type(%{type: "any"} = property), do: Map.put(property, :type, "string")
-    defp set_default_type(%{type: nil} = property), do: Map.put(property, :type, "string")
-    defp set_default_type(property), do: property
-
-    defp update_ref(%{:"$ref" => nil} = property), do: property
-    defp update_ref(%{:"$ref" => _} = property) do
-      Map.update!(property, :"$ref", fn ref ->
-        "#/definitions/#{ref}"
+    defp map_properties(nil), do: nil
+    defp map_properties(properties_by_name) do
+      Enum.reduce(properties_by_name, %{}, fn {name, config}, acc ->
+        Map.put(acc, name, map_property(config))
       end)
     end
-    defp update_ref(property), do: property
-
-    defp update_format(%{format: "google-datetime"} = property) do
-      Map.put(property, :format, "date-time")
+    defp map_property(nil), do: nil
+    defp map_property(%Discovery.JsonSchema{type: "object"} = property) do
+      %Schema{
+        type: "object",
+        description: property.description,
+        default: property.default,
+        properties: map_properties(property.properties),
+        additionalProperties: map_property(property.additionalProperties),
+        "$ref": fix_ref(Map.get(property, :"$ref"))
+      }
     end
-    defp update_format(property), do: property
-
-    defp update_properties(%{properties: nil} = property), do: property
-    defp update_properties(%{properties: _} = property) do
-      Map.update!(property, :properties, fn properties ->
-        Enum.reduce(properties, %{}, fn {name, property}, acc ->
-          Map.put(acc, name, map_property(property))
-        end)
-      end)
+    defp map_property(%Discovery.JsonSchema{type: "array"} = property) do
+      %Schema{
+        type: "array",
+        description: property.description,
+        default: property.default,
+        "$ref": fix_ref(Map.get(property, :"$ref")),
+        items: map_items(property.items)
+      }
     end
-    defp update_properties(property), do: property
-
-    defp update_additional_properties(%{additionalProperties: nil} = property), do: property
-    defp update_additional_properties(%{additionalProperties: _} = property) do
-      Map.update!(property, :additionalProperties, &map_property/1)
+    defp map_property(%Discovery.JsonSchema{} = property) do
+      %Schema{
+        type: property.type || "string",
+        format: fix_format(property.format),
+        description: property.description,
+        default: property.default,
+        "$ref": fix_ref(Map.get(property, :"$ref"))
+      }
     end
-    defp update_additional_properties(property), do: property
-
-    defp update_items(%{items: nil} = property), do: property
-    defp update_items(%{items: _} = property) do
-      Map.update!(property, :items, &map_property/1)
+    defp map_items(%Discovery.JsonSchema{type: "array"} = property) do
+      %Items{
+        type: "array",
+        default: property.default,
+        items: map_items(property.items)
+      }
     end
+    defp map_items(%Discovery.JsonSchema{} = property) do
+      %Items{
+        type: property.type || "string",
+        format: fix_format(property.format),
+        default: property.default
+      }
+    end
+    defp fix_ref(nil), do: nil
+    defp fix_ref(ref), do: "#/definitions/#{ref}"
+    defp fix_format("google-datetime"), do: "date-time"
+    defp fix_format(format), do: format
 
     defp add_parameters(openapi, %{parameters: parameters}) do
       global_parameters =
