@@ -65,6 +65,8 @@ defmodule OpenApi.V2.Model.Header do
           :multipleOf => any()
         }
 
+  @derive Jason.Encoder
+
   field(:description)
   field(:type)
   field(:format)

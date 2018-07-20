@@ -35,6 +35,8 @@ defmodule OpenApi.V2.Model.Contact do
           :email => any()
         }
 
+  @derive Jason.Encoder
+
   field(:name)
   field(:url)
   field(:email)

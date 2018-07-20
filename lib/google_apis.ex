@@ -29,10 +29,10 @@ defmodule GoogleApis do
   def discover() do
     discover("apis-candidate.json")
   end
+
   def discover(file) do
     with %Tesla.Env{status: 200, body: body} <- Tesla.get(@discovery_url),
-         {:ok, %{"items" => apis}}           <- Poison.decode(body)
-    do
+         {:ok, %{"items" => apis}} <- Poison.decode(body) do
       json =
         apis
         |> Enum.filter(&GoogleApis.DirectoryItem.preferred?/1)
@@ -44,6 +44,7 @@ defmodule GoogleApis do
     else
       %Tesla.Env{status: status} ->
         {:error, "Error received status: #{status} from discovery endpoint"}
+
       err ->
         err
     end

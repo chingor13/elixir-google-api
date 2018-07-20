@@ -50,12 +50,15 @@ defmodule OpenApi.V2.Model.Swagger do
           :produces => list(any()),
           :paths => OpenApi.V2.Model.Paths.t(),
           :definitions => OpenApi.V2.Model.Definitions.t(),
+          :parameters => OpenApi.V2.Model.ParametersDefinitions.t(),
           :responses => OpenApi.V2.Model.ResponsesDefinitions.t(),
           :securityDefinitions => OpenApi.V2.Model.SecurityDefinitions.t(),
           :security => list(OpenApi.V2.Model.SecurityRequirement.t()),
           :tags => list(OpenApi.V2.Model.Tag.t()),
           :externalDocs => OpenApi.V2.Model.ExternalDocumentation.t()
         }
+
+  @derive Jason.Encoder
 
   field(:swagger)
   field(:info, as: OpenApi.V2.Model.Info)
@@ -66,6 +69,7 @@ defmodule OpenApi.V2.Model.Swagger do
   field(:produces, type: :list)
   field(:paths, as: OpenApi.V2.Model.Paths)
   field(:definitions, as: OpenApi.V2.Model.Definitions)
+  field(:parameters, as: OpenApi.V2.Model.ParametersDefinitions)
   field(:responses, as: OpenApi.V2.Model.ResponsesDefinitions)
   field(:securityDefinitions, as: OpenApi.V2.Model.SecurityDefinitions)
   field(:security, as: OpenApi.V2.Model.SecurityRequirement, type: :list)

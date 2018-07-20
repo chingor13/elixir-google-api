@@ -37,6 +37,8 @@ defmodule OpenApi.V2.Model.Response do
           :examples => OpenApi.V2.Model.Example.t()
         }
 
+  @derive Jason.Encoder
+
   field(:description)
   field(:schema, as: OpenApi.V2.Model.Schema)
   field(:headers, as: OpenApi.V2.Model.Headers)

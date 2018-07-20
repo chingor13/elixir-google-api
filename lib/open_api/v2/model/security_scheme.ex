@@ -45,6 +45,8 @@ defmodule OpenApi.V2.Model.SecurityScheme do
           :scopes => OpenApi.V2.Model.Scopes.t()
         }
 
+  @derive Jason.Encoder
+
   field(:type)
   field(:description)
   field(:name)

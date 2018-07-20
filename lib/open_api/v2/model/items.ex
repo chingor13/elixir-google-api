@@ -63,6 +63,8 @@ defmodule OpenApi.V2.Model.Items do
           :multipleOf => any()
         }
 
+  @derive Jason.Encoder
+
   field(:type)
   field(:format)
   field(:items, as: OpenApi.V2.Model.Items)

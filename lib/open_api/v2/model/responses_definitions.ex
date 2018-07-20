@@ -31,6 +31,8 @@ defmodule OpenApi.V2.Model.ResponsesDefinitions do
           :default => OpenApi.V2.Model.Response.t()
         }
 
+  @derive Jason.Encoder
+
   field(:default, as: OpenApi.V2.Model.Response)
 end
 

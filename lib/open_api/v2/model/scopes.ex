@@ -27,6 +27,8 @@ defmodule OpenApi.V2.Model.Scopes do
   use GoogleApi.Gax.ModelBase
 
   @type t :: %__MODULE__{}
+
+  @derive Jason.Encoder
 end
 
 defimpl Poison.Decoder, for: OpenApi.V2.Model.Scopes do

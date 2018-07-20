@@ -47,6 +47,8 @@ defmodule OpenApi.V2.Model.PathItem do
           :parameters => OpenApi.V2.Model.Parameter.t()
         }
 
+  @derive Jason.Encoder
+
   field(:"$ref")
   field(:get, as: OpenApi.V2.Model.Operation)
   field(:put, as: OpenApi.V2.Model.Operation)
