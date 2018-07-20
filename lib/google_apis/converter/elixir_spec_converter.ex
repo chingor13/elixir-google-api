@@ -33,8 +33,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       # |> Jason.encode!()
       # |> IO.inspect
 
-    IO.inspect openapi.definitions
+    # IO.inspect openapi.definitions
     IO.inspect openapi.paths
+    # IO.inspect openapi.parameters
+    # IO.inspect openapi.securityDefinitions
+    # IO.inspect openapi.security
+    # IO.inspect openapi.tags
     # IO.inspect(openapi["definitions"])
 
     # if File.exists?(output) do
@@ -65,11 +69,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
     # alias GoogleApi.Discovery.V1.Model.{JsonSchema,RestDescription}
     alias GoogleApi.Discovery.V1.Model, as: Discovery
-    alias OpenApi.V2.Model.{Swagger,Info,Contact,License,Definitions,Schema,ExternalDocumentation,Tag,SecurityScheme,Scopes,SecurityDefinitions,Items}
+    alias OpenApi.V2.Model, as: OpenApi
+    # alias OpenApi.V2.Model.{Swagger,Info,Contact,License,Definitions,Schema,ExternalDocumentation,Tag,SecurityScheme,Scopes,SecurityDefinitions,Items}
 
     @spec from_gdd(Discovery.RestDescription.t()) :: Swagger.t()
     def from_gdd(%Discovery.RestDescription{} = gdd) do
-      %Swagger{swagger: "2.0"}
+      %OpenApi.Swagger{swagger: "2.0"}
       |> add_info(gdd)
       |> add_host_info(gdd)
       |> add_definitions(gdd)
@@ -81,15 +86,15 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp add_info(openapi, %Discovery.RestDescription{title: title, description: description, version: version}) do
-      Map.put(openapi, :info, %Info{
+      Map.put(openapi, :info, %OpenApi.Info{
         title: title,
         description: description,
-        contact: %Contact{
+        contact: %OpenApi.Contact{
           name: "Google",
           url: "https://google.com"
         },
         version: version,
-        license: %License{
+        license: %OpenApi.License{
           name: "Apache 2.0",
           url: "https://apache.org/licenses/LICENSE-2.0"
         },
@@ -105,7 +110,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     defp add_definitions(openapi, %Discovery.RestDescription{schemas: schemas}) do
       definitions =
         schemas
-        |> Enum.reduce(%Definitions{}, fn {name, schema}, acc ->
+        |> Enum.reduce(%OpenApi.Definitions{}, fn {name, schema}, acc ->
           Map.put(acc, name, map_property(schema))
         end)
 
@@ -120,7 +125,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
     defp map_property(nil), do: nil
     defp map_property(%Discovery.JsonSchema{type: "object"} = property) do
-      %Schema{
+      %OpenApi.Schema{
         type: "object",
         description: property.description,
         default: property.default,
@@ -130,7 +135,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       }
     end
     defp map_property(%Discovery.JsonSchema{type: "array"} = property) do
-      %Schema{
+      %OpenApi.Schema{
         type: "array",
         description: property.description,
         default: property.default,
@@ -139,7 +144,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       }
     end
     defp map_property(%Discovery.JsonSchema{} = property) do
-      %Schema{
+      %OpenApi.Schema{
         type: property.type || "string",
         format: fix_format(property.format),
         description: property.description,
@@ -147,15 +152,16 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         "$ref": fix_ref(Map.get(property, :"$ref"))
       }
     end
+    defp map_items(nil), do: nil
     defp map_items(%Discovery.JsonSchema{type: "array"} = property) do
-      %Items{
+      %OpenApi.Items{
         type: "array",
         default: property.default,
         items: map_items(property.items)
       }
     end
     defp map_items(%Discovery.JsonSchema{} = property) do
-      %Items{
+      %OpenApi.Items{
         type: property.type || "string",
         format: fix_format(property.format),
         default: property.default
@@ -166,31 +172,69 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     defp fix_format("google-datetime"), do: "date-time"
     defp fix_format(format), do: format
 
-    defp add_parameters(openapi, %{parameters: parameters}) do
+    defp add_parameters(openapi, %Discovery.RestDescription{parameters: parameters}) do
       global_parameters =
         parameters
-        |> Enum.reduce(%{}, fn {name, parameter}, acc ->
+        |> Enum.reduce(%OpenApi.ParametersDefinitions{}, fn {name, parameter}, acc ->
           Map.put acc, name, map_parameter(name, parameter)
         end)
 
       Map.put(openapi, :parameters, global_parameters)
     end
 
-    defp map_parameter(name, %{location: location} = parameter) do
-      parameter
-      |> Map.take(["default", "type", "description", "required", "enum", "format", "repeated"])
-      |> Map.put("name", name)
-      |> Map.put("in", location)
+    defp map_parameter(name, %Discovery.JsonSchema{location: "body"} = parameter) do
+      %OpenApi.Parameter{
+        name: name,
+        in: "body",
+        description: parameter.description,
+        required: parameter.required,
+        schema: map_property(parameter)
+      }
+    end
+    defp map_parameter(name, %Discovery.JsonSchema{type: "array"} = parameter) do
+      %OpenApi.Parameter{
+        name: name,
+        in: parameter.location,
+        description: parameter.description,
+        required: parameter.required,
+        type: "array",
+        items: map_items(parameter)
+      }
+    end
+    defp map_parameter(name, %Discovery.JsonSchema{repeated: true} = parameter) do
+      %OpenApi.Parameter{
+        name: name,
+        in: parameter.location,
+        description: parameter.description,
+        required: parameter.required,
+        type: "array",
+        items: map_items(parameter)
+      }
+    end
+    defp map_parameter(name, %Discovery.JsonSchema{} = parameter) do
+      %OpenApi.Parameter{
+        name: name,
+        in: parameter.location,
+        description: parameter.description,
+        required: parameter.required,
+        type: parameter.type,
+        format: parameter.format,
+        default: parameter.default,
+        maximum: parameter.maximum,
+        minimum: parameter.minimum,
+        pattern: parameter.pattern,
+        enum: parameter.enum
+      }
     end
 
-    defp add_security_definitions(openapi, %{auth: %{oauth2: %{scopes: scopes}}}) do
-      definitions = Map.put(%SecurityDefinitions{}, "Oauth2", %SecurityScheme{
+    defp add_security_definitions(openapi, %Discovery.RestDescription{auth: %Discovery.RestDescriptionAuth{oauth2: %Discovery.RestDescriptionAuthOauth2{scopes: scopes}}}) do
+      definitions = Map.put(%OpenApi.SecurityDefinitions{}, "Oauth2", %OpenApi.SecurityScheme{
         type: "oauth2",
         description: "Oauth 2.0 authentication",
         flow: "implicit",
         authorizationUrl: "https://accounts.google.com/o/oauth2/auth",
         scopes:
-          Enum.reduce(scopes, %Scopes{}, fn {scope, %{description: description}}, acc ->
+          Enum.reduce(scopes, %OpenApi.Scopes{}, fn {scope, %Discovery.RestDescriptionAuthOauth2Scopes{description: description}}, acc ->
             Map.put(acc, scope, description)
           end)
       })
@@ -203,7 +247,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp add_tags(openapi, %{resources: resources}) do
-      Map.put(openapi, :tags, Enum.map(resources, fn {name, _config} -> %Tag{name: name} end))
+      Map.put(openapi, :tags, Enum.map(resources, fn {name, _config} -> %OpenApi.Tag{name: name} end))
     end
 
     defp add_security_definitions(openapi, _) do
@@ -215,17 +259,14 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       global_parameter_refs =
         openapi
         |> Map.get(:parameters, %{})
-        |> Enum.map(fn {name, _} ->
-          %{"$ref": "#/parameters/#{name}"}
-        end)
+        # |> Enum.map(fn {name, _} ->
+        #   %{"$ref": "#/parameters/#{name}"}
+        # end)
 
       endpoints =
         resources
-        |> Enum.map(fn {resource_name, resource} ->
-          methods =
-            resource
-            |> Map.get("methods", %{})
-            |> Map.values
+        |> Enum.map(fn {resource_name, %Discovery.RestResource{methods: methods} = resource} ->
+          Map.values(methods)
         end)
         |> List.flatten
 
@@ -311,8 +352,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       endpoint
     end
 
-    defp add_external_docs(openapi, %{documentationLink: url}) do
-      Map.put(openapi, :externalDocs, %ExternalDocumentation{url: url})
+    defp add_external_docs(openapi, %Discovery.RestDescription{documentationLink: url}) do
+      Map.put(openapi, :externalDocs, %OpenApi.ExternalDocumentation{url: url})
     end
 
     defp add_external_docs(openapi, _) do
