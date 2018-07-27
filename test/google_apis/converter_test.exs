@@ -101,7 +101,7 @@ defmodule GoogleApis.ConverterTest do
       }
     } = parameters
 
-    # assert_integer_path(paths)
+    assert_integer_path(paths)
     # assert_upload_path(paths)
     assert_definitions(definitions)
   end

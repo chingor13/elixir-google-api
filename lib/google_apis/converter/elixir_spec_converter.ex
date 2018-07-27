@@ -108,8 +108,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       })
     end
 
-    defp add_host_info(openapi, %Discovery.RestDescription{rootUrl: root_url}) do
-      %URI{host: host, path: base_path, scheme: scheme, port: port} = URI.parse(root_url)
+    defp add_host_info(openapi, %Discovery.RestDescription{baseUrl: base_url}) do
+      %URI{host: host, path: base_path, scheme: scheme, port: port} = URI.parse(base_url)
       host_string = case URI.default_port(scheme) do
         ^port -> host
         _ -> "#{host}:#{port}"
@@ -295,7 +295,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       Map.put(openapi, :tags, [])
     end
 
-    defp add_paths(%OpenApi.Swagger{parameters: parameters} = openapi, %{resources: resources}) do
+    defp add_paths(%OpenApi.Swagger{basePath: base_path, parameters: parameters} = openapi, %Discovery.RestDescription{resources: resources}) do
       global_parameter_refs =
         parameters
         |> Map.from_struct()
@@ -312,20 +312,32 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
       supports_media_upload =
         Enum.any?(endpoints, fn endpoint ->
-          Map.get(endpoint, "supportsMediaUpload")
+          Map.get(endpoint, :supportsMediaUpload)
         end)
 
       paths =
         endpoints
-        |> Enum.reduce(%OpenApi.Paths{}, fn %{path: path, httpMethod: method} = endpoint, acc ->
+        |> Enum.reduce(%OpenApi.Paths{}, fn %Discovery.RestMethod{path: path, httpMethod: method} = endpoint, acc ->
+          full_path = if supports_media_upload do
+            Path.join(base_path, path)
+          else
+            path
+          end
           acc
-          |> Map.put_new(path, %OpenApi.PathItem{parameters: global_parameter_refs})
-          |> Map.update!(path, fn path_item ->
+          |> Map.put_new(full_path, %OpenApi.PathItem{parameters: global_parameter_refs})
+          |> Map.update!(full_path, fn path_item ->
             Map.put(path_item, String.to_atom(String.downcase(method)), map_endpoint(endpoint))
           end)
         end)
 
-      Map.put(openapi, :paths, paths)
+      openapi
+      |> Map.put(:paths, paths)
+      |> update_base_path(supports_media_upload)
+    end
+
+    defp update_base_path(openapi, false), do: openapi
+    defp update_base_path(openapi, true) do
+      Map.put(openapi, :basePath, "/")
     end
 
     defp map_endpoint(%Discovery.RestMethod{id: operation_id} = endpoint) do
@@ -334,14 +346,13 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         operationId: operation_id,
         security: endpoint_security(endpoint),
         responses: endpoint_responses(endpoint.response),
-        parameters: endpoint_parameters(endpoint)
-        # tags: endpoint_tags(endpoint),
+        parameters: endpoint_parameters(endpoint),
+        tags: endpoint_tags(endpoint)
       }
     end
 
     defp endpoint_security(%Discovery.RestMethod{scopes: scopes}) do
-      %OpenApi.SecurityRequirement{}
-      |> Map.put("OAuth2", scopes)
+      [Map.put(%OpenApi.SecurityRequirement{}, "Oauth2", scopes)]
     end
 
     defp endpoint_security(_), do: nil
@@ -389,10 +400,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
               }
             ]
       end
+      params
     end
 
-    defp update_endpoint_tags(endpoint, _) do
-      endpoint
+    defp endpoint_tags(%Discovery.RestMethod{id: operation_id} = method) do
+      [object | _rest] = String.split(operation_id, ".", trim: true)
+      [object]
     end
 
     defp add_external_docs(openapi, %Discovery.RestDescription{documentationLink: url}) do

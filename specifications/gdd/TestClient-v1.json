@@ -218,7 +218,8 @@
           },
           "parameterOrder": [
             "bucket",
-            "id"
+            "id",
+            "category"
           ],
           "response": {
             "$ref": "Container"
