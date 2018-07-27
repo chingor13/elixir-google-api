@@ -102,7 +102,8 @@ defmodule GoogleApis.ConverterTest do
     } = parameters
 
     assert_integer_path(paths)
-    # assert_upload_path(paths)
+    assert_simple_upload_path(paths)
+    assert_resumable_upload_path(paths)
     assert_definitions(definitions)
   end
 
@@ -155,7 +156,7 @@ defmodule GoogleApis.ConverterTest do
     } = path
   end
 
-  defp assert_upload_path(paths) do
+  defp assert_simple_upload_path(paths) do
     assert {:ok, path} = Map.fetch(paths, "/upload/v1/b/{bucket}/o")
     assert_global_path_parameters(path)
     assert {:ok, operation} = Map.fetch(path, "post")
@@ -204,6 +205,52 @@ defmodule GoogleApis.ConverterTest do
         "200" => %{
           "description" => "Successful response",
           "schema" => %{"$ref" => "#/definitions/Container"}
+        }
+      },
+      "security" => [%{"Oauth2" => ["https://example.com/objects.insert"]}],
+      "tags" => ["objects"]
+    } = operation
+  end
+
+  defp assert_resumable_upload_path(paths) do
+    assert {:ok, path} = Map.fetch(paths, "/resumable/upload/v1/b/{bucket}/o")
+    assert_global_path_parameters(path)
+    assert {:ok, operation} = Map.fetch(path, "post")
+    assert %{
+      "consumes" => ["multipart/form-data"],
+      "description" => "Stores a new object and metadata",
+      "operationId" => "objects.insert.resumable",
+      "parameters" => [
+        %{
+          "description" => "Name of the bucket where the object is stored",
+          "in" => "path",
+          "name" => "bucket",
+          "required" => true,
+          "type" => "string"
+        },
+        %{
+          "description" => "Name of the object. Required when the object metadata is not otherwise provided.",
+          "in" => "query",
+          "name" => "name",
+          "type" => "string"
+        },
+        %{
+          "description" => "Upload type. Must be \"resumable\".",
+          "enum" => ["resumable"],
+          "in" => "query",
+          "name" => "uploadType",
+          "required" => true,
+          "type" => "string"
+        },
+        %{
+          "in" => "body",
+          "name" => "body",
+          "schema" => %{"$ref" => "#/definitions/Container"}
+        }
+      ],
+      "responses" => %{
+        "200" => %{
+          "description" => "Successful response",
         }
       },
       "security" => [%{"Oauth2" => ["https://example.com/objects.insert"]}],

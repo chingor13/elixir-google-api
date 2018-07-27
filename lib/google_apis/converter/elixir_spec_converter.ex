@@ -311,10 +311,11 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         end)
         |> List.flatten()
 
-      supports_media_upload =
-        Enum.any?(endpoints, fn endpoint ->
+      media_upload_endpoints =
+        Enum.filter(endpoints, fn endpoint ->
           Map.get(endpoint, :supportsMediaUpload)
         end)
+      supports_media_upload = !Enum.empty?(media_upload_endpoints)
 
       paths =
         endpoints
@@ -330,11 +331,60 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
             Map.put(path_item, String.to_atom(String.downcase(method)), map_endpoint(endpoint))
           end)
         end)
+        |> add_upload_endpoints(global_parameter_refs, media_upload_endpoints)
 
       openapi
       |> Map.put(:paths, paths)
       |> update_base_path(supports_media_upload)
     end
+
+    defp add_upload_endpoints(paths, _, []), do: paths
+    defp add_upload_endpoints(paths, global_parameter_refs, [method | rest]) do
+      paths
+      |> add_resumable_upload(method, global_parameter_refs)
+      |> add_simple_upload(method, global_parameter_refs)
+      |> add_upload_endpoints(global_parameter_refs, rest)
+    end
+
+    defp add_resumable_upload(paths, %Discovery.RestMethod{mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{resumable: %{path: path}}}} = endpoint, global_parameter_refs) do
+      operation = %OpenApi.Operation{
+        consumes: ["multipart/form-data"],
+        description: endpoint.description,
+        operationId: "#{endpoint.id}.resumable",
+        security: endpoint_security(endpoint),
+        responses: endpoint_responses(endpoint.response),
+        parameters: upload_parameters(endpoint),
+        tags: endpoint_tags(endpoint)
+      }
+
+      path_item = %OpenApi.PathItem{
+        parameters: global_parameter_refs
+      }
+      |> Map.put("post", operation)
+
+      Map.put(paths, path, path_item)
+    end
+    defp add_resumable_upload(paths, _), do: paths
+
+    defp add_simple_upload(paths, %Discovery.RestMethod{mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{simple: %{path: path}}}} = endpoint, global_parameter_refs) do
+      operation = %OpenApi.Operation{
+        consumes: ["multipart/form-data"],
+        description: endpoint.description,
+        operationId: "#{endpoint.id}.simple",
+        security: endpoint_security(endpoint),
+        responses: endpoint_responses(endpoint.response),
+        parameters: upload_parameters(endpoint),
+        tags: endpoint_tags(endpoint)
+      }
+
+      endpoint = %OpenApi.PathItem{
+        parameters: global_parameter_refs
+      }
+      |> Map.put("post", operation)
+
+      Map.put(paths, path, endpoint)
+    end
+    defp add_simple_upload(paths, _), do: paths
 
     defp update_base_path(openapi, false), do: openapi
     defp update_base_path(openapi, true) do
@@ -378,7 +428,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     defp endpoint_parameters(%Discovery.RestMethod{
            parameterOrder: parameter_order,
            parameters: parameter_config,
-           request: request
+           request: request,
+           description: description
          }) do
       parameter_order = parameter_order || []
       parameter_config = parameter_config || []
@@ -393,6 +444,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           params ++
             [
               %OpenApi.Parameter{
+                description: description,
                 in: "body",
                 name: "body",
                 schema: %OpenApi.Schema{
@@ -402,6 +454,57 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
             ]
       end
       params
+    end
+
+    defp upload_parameters(%Discovery.RestMethod{
+           parameterOrder: parameter_order,
+           parameters: parameter_config,
+           request: request
+         }) do
+      parameter_order = parameter_order || []
+      parameter_config = parameter_config || []
+
+      params =
+        Enum.map(parameter_order, fn name ->
+          map_parameter(name, Map.fetch!(parameter_config, name))
+        end)
+        ++ [
+          %OpenApi.Parameter{
+            description: "Upload type. Must be \"multipart\".",
+            enum: ["multipart"],
+            in: "query",
+            name: "uploadType",
+            required: true,
+            type: "string"
+          }
+        ]
+
+      if request do
+        ref = Map.get(request, :"$ref")
+        params =
+          params ++
+            [
+              %OpenApi.Parameter{
+                description: "#{ref} metadata.",
+                in: "body",
+                name: "metadata",
+                required: true,
+                schema: %OpenApi.Schema{
+                  :"$ref" => "#/definitions/#{ref}"
+                }
+              }
+            ]
+      end
+
+      params ++ [
+        %OpenApi.Parameter{
+          description: "The file to upload.",
+          in: "formData",
+          name: "data",
+          required: true,
+          type: "file"
+        }
+      ]
     end
 
     defp endpoint_tags(%Discovery.RestMethod{id: operation_id} = method) do

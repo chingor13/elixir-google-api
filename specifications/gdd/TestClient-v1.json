@@ -247,7 +247,8 @@
             }
           },
           "parameterOrder": [
-            "bucket"
+            "bucket",
+            "name"
           ],
           "request": {
             "$ref": "Container"
