@@ -28,7 +28,7 @@ defmodule GoogleApis.ConverterTest do
       |> Poison.decode!
 
     # IO.inspect openapi
-    assert_discovery_format(openapi)
+    assert_openapi_format(openapi)
   end
 
   test "elixir converter" do
@@ -44,10 +44,10 @@ defmodule GoogleApis.ConverterTest do
       |> Poison.decode!
 
     # IO.inspect openapi
-    assert_discovery_format(openapi)
+    assert_openapi_format(openapi)
   end
 
-  defp assert_discovery_format(openapi) do
+  defp assert_openapi_format(openapi) do
     assert %{
       "swagger" => "2.0",
       "info" => %{

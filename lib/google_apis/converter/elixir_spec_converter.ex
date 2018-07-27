@@ -352,8 +352,10 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         description: endpoint.description,
         operationId: "#{endpoint.id}.resumable",
         security: endpoint_security(endpoint),
-        responses: endpoint_responses(endpoint.response),
-        parameters: upload_parameters(endpoint),
+        responses: Map.put(%OpenApi.Responses{}, "200", %OpenApi.Response{
+            description: "Successful response"
+          }),
+        parameters: resumable_upload_parameters(endpoint),
         tags: endpoint_tags(endpoint)
       }
 
@@ -373,7 +375,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         operationId: "#{endpoint.id}.simple",
         security: endpoint_security(endpoint),
         responses: endpoint_responses(endpoint.response),
-        parameters: upload_parameters(endpoint),
+        parameters: simple_upload_parameters(endpoint),
         tags: endpoint_tags(endpoint)
       }
 
@@ -456,7 +458,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       params
     end
 
-    defp upload_parameters(%Discovery.RestMethod{
+    defp simple_upload_parameters(%Discovery.RestMethod{
            parameterOrder: parameter_order,
            parameters: parameter_config,
            request: request
@@ -505,6 +507,45 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           type: "file"
         }
       ]
+    end
+
+    defp resumable_upload_parameters(%Discovery.RestMethod{
+          parameterOrder: parameter_order,
+          parameters: parameter_config,
+          request: request
+        }) do
+      parameter_order = parameter_order || []
+      parameter_config = parameter_config || []
+
+      params =
+        Enum.map(parameter_order, fn name ->
+          map_parameter(name, Map.fetch!(parameter_config, name))
+        end)
+        ++ [
+          %OpenApi.Parameter{
+            description: "Upload type. Must be \"resumable\".",
+            enum: ["resumable"],
+            in: "query",
+            name: "uploadType",
+            required: true,
+            type: "string"
+          }
+        ]
+
+      if request do
+        ref = Map.get(request, :"$ref")
+        params =
+          params ++
+            [
+              %OpenApi.Parameter{
+                in: "body",
+                name: "body",
+                schema: %OpenApi.Schema{
+                  :"$ref" => "#/definitions/#{ref}"
+                }
+              }
+            ]
+      end
     end
 
     defp endpoint_tags(%Discovery.RestMethod{id: operation_id} = method) do
