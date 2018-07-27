@@ -27,7 +27,6 @@ defmodule GoogleApis.ConverterTest do
       |> File.read!()
       |> Poison.decode!()
 
-    # IO.inspect openapi
     assert_openapi_format(openapi)
   end
 
@@ -43,7 +42,6 @@ defmodule GoogleApis.ConverterTest do
       |> File.read!()
       |> Poison.decode!()
 
-    # IO.inspect openapi
     assert_openapi_format(openapi)
   end
 

@@ -75,8 +75,6 @@ defmodule OpenApi.V2.Model.Parameter do
           :multipleOf => any()
         }
 
-  @derive Jason.Encoder
-
   field(:name)
   field(:in)
   field(:description)

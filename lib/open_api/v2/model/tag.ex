@@ -35,8 +35,6 @@ defmodule OpenApi.V2.Model.Tag do
           :externalDocs => OpenApi.V2.Model.ExternalDocumentation.t()
         }
 
-  @derive Jason.Encoder
-
   field(:name)
   field(:description)
   field(:externalDocs, as: OpenApi.V2.Model.ExternalDocumentation)

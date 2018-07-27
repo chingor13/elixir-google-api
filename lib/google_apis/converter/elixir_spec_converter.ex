@@ -29,7 +29,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       |> File.read!()
       |> Poison.decode!(as: %RestDescription{})
       |> OpenApi2.from_gdd()
-      |> Poison.encode!()
+      |> Jason.encode!(pretty: true)
 
     File.write(output, openapi)
 

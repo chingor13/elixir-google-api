@@ -33,8 +33,6 @@ defmodule OpenApi.V2.Model.License do
           :url => any()
         }
 
-  @derive Jason.Encoder
-
   field(:name)
   field(:url)
 end

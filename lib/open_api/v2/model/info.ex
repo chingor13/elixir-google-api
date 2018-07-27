@@ -41,8 +41,6 @@ defmodule OpenApi.V2.Model.Info do
           :version => any()
         }
 
-  @derive Jason.Encoder
-
   field(:title)
   field(:description)
   field(:termsOfService)

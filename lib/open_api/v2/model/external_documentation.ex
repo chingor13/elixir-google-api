@@ -33,8 +33,6 @@ defmodule OpenApi.V2.Model.ExternalDocumentation do
           :url => any()
         }
 
-  @derive Jason.Encoder
-
   field(:description)
   field(:url)
 end

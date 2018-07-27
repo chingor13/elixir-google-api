@@ -39,8 +39,6 @@ defmodule OpenApi.V2.Model.Xml do
           :wrapped => any()
         }
 
-  @derive Jason.Encoder
-
   field(:name)
   field(:namespace)
   field(:prefix)

@@ -31,8 +31,6 @@ defmodule OpenApi.V2.Model.Reference do
           :"$ref" => any()
         }
 
-  @derive Jason.Encoder
-
   field(:"$ref")
 end
 

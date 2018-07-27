@@ -53,8 +53,6 @@ defmodule OpenApi.V2.Model.Operation do
           :security => list(OpenApi.V2.Model.SecurityRequirement.t())
         }
 
-  @derive Jason.Encoder
-
   field(:tags, type: :list)
   field(:summary)
   field(:description)

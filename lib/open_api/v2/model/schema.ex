@@ -87,8 +87,6 @@ defmodule OpenApi.V2.Model.Schema do
           :example => any()
         }
 
-  @derive Jason.Encoder
-
   field(:"$ref")
   field(:type)
   field(:format)

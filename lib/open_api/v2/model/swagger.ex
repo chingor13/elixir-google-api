@@ -58,8 +58,6 @@ defmodule OpenApi.V2.Model.Swagger do
           :externalDocs => OpenApi.V2.Model.ExternalDocumentation.t()
         }
 
-  @derive Jason.Encoder
-
   field(:swagger)
   field(:info, as: OpenApi.V2.Model.Info)
   field(:host)
