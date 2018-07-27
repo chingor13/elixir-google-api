@@ -62,7 +62,7 @@ defmodule OpenApi.V2.Model.Schema do
           :title => any(),
           :description => any(),
           :default => any(),
-          :items => OpenApi.V2.Model.Items.t(),
+          :items => OpenApi.V2.Model.Schema.t(),
           :collectionFormat => any(),
           :maximum => any(),
           :exclusiveMaximum => any(),
@@ -95,7 +95,7 @@ defmodule OpenApi.V2.Model.Schema do
   field(:title)
   field(:description)
   field(:default)
-  field(:items, as: OpenApi.V2.Model.Items)
+  field(:items, as: OpenApi.V2.Model.Schema)
   field(:collectionFormat)
   field(:maximum)
   field(:exclusiveMaximum)

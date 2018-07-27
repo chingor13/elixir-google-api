@@ -154,13 +154,13 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         description: property.description,
         default: property.default,
         "$ref": fix_ref(Map.get(property, :"$ref")),
-        items: map_items(property.items)
+        items: map_property(property.items)
       }
     end
 
     defp map_property(%Discovery.JsonSchema{} = property) do
       %OpenApi.Schema{
-        type: property.type || "string",
+        type: fix_type(property.type),
         format: fix_format(property.format),
         description: property.description,
         default: property.default,
@@ -180,11 +180,15 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
     defp map_items(%Discovery.JsonSchema{} = property) do
       %OpenApi.Items{
-        type: property.type || "string",
+        type: fix_type(property.type),
         format: fix_format(property.format),
         default: property.default
       }
     end
+
+    defp fix_type(nil), do: "string"
+    defp fix_type("any"), do: "string"
+    defp fix_type(type), do: type
 
     defp fix_ref(nil), do: nil
     defp fix_ref(ref), do: "#/definitions/#{ref}"

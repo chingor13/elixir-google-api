@@ -223,7 +223,7 @@ defmodule GoogleApis.ConverterTest do
       "properties" => %{
         "arrayRefVal" => %{
           "description" => "An array of reference objects",
-          "items" => %{"$ref" => "#/definitions/Container", "type" => "string"},
+          "items" => %{"$ref" => "#/definitions/Container"},
           "type" => "array"
         },
         "arrayVal" => %{
@@ -238,8 +238,7 @@ defmodule GoogleApis.ConverterTest do
         "numberVal" => %{"description" => "A simple number", "type" => "number"},
         "objectRefVal" => %{
           "$ref" => "#/definitions/Container",
-          "description" => "A reference to an object definition.",
-          "type" => "string"
+          "description" => "A reference to an object definition."
         },
         "objectVal" => %{
           "description" => "An inline object definition",
@@ -340,16 +339,5 @@ defmodule GoogleApis.ConverterTest do
       },
       "type" => "object"
     } = nested_container
-  end
-
-  defp assert_valid_path(path) do
-    assert [%{"$ref" => "#/parameters/alt"}] = path["parameters"]
-    path
-    |> Map.take(["get", "post", "delete", "options", "put"])
-    |> Enum.all?(fn {_method, operation} -> assert_valid_operation(operation) end)
-  end
-
-  defp assert_valid_operation(operation) do
-    true
   end
 end
