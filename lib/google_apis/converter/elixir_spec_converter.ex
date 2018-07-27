@@ -233,7 +233,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         description: parameter.description,
         required: parameter.required,
         type: "array",
-        items: map_items(parameter)
+        items: map_items(parameter),
+        collectionFormat: "multi"
       }
     end
 
