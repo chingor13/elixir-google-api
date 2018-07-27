@@ -30,7 +30,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       |> File.read!()
       |> Poison.decode!(as: %RestDescription{})
       |> OpenApi2.from_gdd()
-      |> Jason.encode!()
+      |> Poison.encode!()
 
     # |> IO.inspect
 
@@ -60,9 +60,9 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     #   end)
     # end
 
-    # File.write(output_path, openapi)
+    File.write(output, openapi)
 
-    {:ok, ""}
+    {:ok, output}
   end
 
   defmodule OpenApi2 do
@@ -109,8 +109,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp add_host_info(openapi, %Discovery.RestDescription{rootUrl: root_url}) do
-      %URI{host: host, path: base_path, scheme: scheme} = URI.parse(root_url)
-      %{openapi | host: host, basePath: base_path, schemes: [scheme]}
+      %URI{host: host, path: base_path, scheme: scheme, port: port} = URI.parse(root_url)
+      host_string = case URI.default_port(scheme) do
+        ^port -> host
+        _ -> "#{host}:#{port}"
+      end
+      %{openapi | host: host_string, basePath: base_path, schemes: [scheme]}
     end
 
     defp add_definitions(openapi, %Discovery.RestDescription{schemas: schemas}) do
