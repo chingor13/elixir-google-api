@@ -278,12 +278,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           %OpenApi.Reference{"$ref": "#/parameters/#{name}"}
         end)
 
-      endpoints =
-        resources
-        |> Enum.map(fn {_resource_name, %Discovery.RestResource{methods: methods}} ->
-          Map.values(methods)
-        end)
-        |> List.flatten()
+      endpoints = find_all_endpoints(resources)
 
       media_upload_endpoints =
         Enum.filter(endpoints, fn endpoint ->
@@ -317,6 +312,24 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       openapi
       |> Map.put(:paths, paths)
       |> update_base_path(supports_media_upload)
+    end
+
+    defp find_all_endpoints(nil), do: nil
+    defp find_all_endpoints(resources) do
+      resources
+      |> endpoints_for_resources
+      |> List.flatten()
+    end
+    defp endpoints_for_resources(nil), do: []
+    defp endpoints_for_resources(resources) do
+      Enum.map(resources, fn {_resource_name, resource} -> endpoints_for_resource(resource) end)
+    end
+    defp endpoints_for_resource(nil), do: []
+    defp endpoints_for_resource(%Discovery.RestResource{methods: nil, resources: nested_resources}) do
+      endpoints_for_resources(nested_resources)
+    end
+    defp endpoints_for_resource(%Discovery.RestResource{methods: methods, resources: nested_resources}) do
+      Map.values(methods) ++ endpoints_for_resources(nested_resources)
     end
 
     defp add_upload_endpoints(paths, _, []), do: paths
@@ -562,8 +575,19 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp endpoint_tags(%Discovery.RestMethod{id: operation_id}) do
-      [object | _rest] = String.split(operation_id, ".", trim: true)
-      [object]
+      [tag_from_operation_id(operation_id)]
+    end
+    defp tag_from_operation_id(operation_id) do
+      operation_id
+      |> String.split(".", trim: true)
+      |> IO.inspect
+      |> tag_from_operation_id_parts
+      |> IO.inspect
+    end
+    def tag_from_operation_id_parts([]), do: nil
+    def tag_from_operation_id_parts([_]), do: nil
+    def tag_from_operation_id_parts([candidate | rest]) do
+      tag_from_operation_id_parts(rest) || candidate
     end
 
     defp add_external_docs(openapi, %Discovery.RestDescription{documentationLink: url}) do
