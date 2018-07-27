@@ -349,6 +349,46 @@
           ]
         }
       }
+    },
+    "projects": {
+      "resources": {
+        "serviceAccount": {
+          "methods": {
+            "get": {
+              "id": "storage.projects.serviceAccount.get",
+              "path": "projects/{projectId}/serviceAccount",
+              "httpMethod": "GET",
+              "description": "Get the email address of this project's Google Cloud Storage service account.",
+              "parameters": {
+                "projectId": {
+                "type": "string",
+                "description": "Project ID",
+                "required": true,
+                "location": "path"
+                },
+                "userProject": {
+                "type": "string",
+                "description": "The project to be billed for this request.",
+                "location": "query"
+                }
+              },
+              "parameterOrder": [
+                "projectId"
+              ],
+              "response": {
+                "$ref": "ServiceAccount"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/cloud-platform",
+                "https://www.googleapis.com/auth/cloud-platform.read-only",
+                "https://www.googleapis.com/auth/devstorage.full_control",
+                "https://www.googleapis.com/auth/devstorage.read_only",
+                "https://www.googleapis.com/auth/devstorage.read_write"
+              ]
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -281,7 +281,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       endpoints = find_all_endpoints(resources)
 
       media_upload_endpoints =
-        Enum.filter(endpoints, fn endpoint ->
+        Enum.filter(endpoints, fn {_tag, endpoint} ->
           Map.get(endpoint, :supportsMediaUpload)
         end)
 
@@ -289,8 +289,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
       paths =
         endpoints
-        |> Enum.reduce(%OpenApi.Paths{}, fn %Discovery.RestMethod{path: path, httpMethod: method} =
-                                              endpoint,
+        |> Enum.reduce(%OpenApi.Paths{}, fn {tag, %Discovery.RestMethod{path: path, httpMethod: method} =
+                                              endpoint},
                                             acc ->
           full_path =
             if supports_media_upload do
@@ -304,7 +304,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           acc
           |> Map.put_new(full_path, %OpenApi.PathItem{parameters: global_parameter_refs})
           |> Map.update!(full_path, fn path_item ->
-            Map.put(path_item, String.to_atom(String.downcase(method)), map_endpoint(endpoint))
+            Map.put(path_item, String.to_atom(String.downcase(method)), map_endpoint(endpoint, tag))
           end)
         end)
         |> add_upload_endpoints(global_parameter_refs, media_upload_endpoints)
@@ -317,19 +317,24 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     defp find_all_endpoints(nil), do: nil
     defp find_all_endpoints(resources) do
       resources
-      |> endpoints_for_resources
+      |> Enum.map(fn {resource_name, resource} -> endpoints_for_resource(resource, resource_name) end)
       |> List.flatten()
     end
-    defp endpoints_for_resources(nil), do: []
-    defp endpoints_for_resources(resources) do
-      Enum.map(resources, fn {_resource_name, resource} -> endpoints_for_resource(resource) end)
+    defp endpoints_for_resources(nil, _), do: []
+    defp endpoints_for_resources(resources, tag) do
+      Enum.map(resources, fn {_subresource_name, resource} -> endpoints_for_resource(resource, tag) end)
     end
     defp endpoints_for_resource(nil), do: []
-    defp endpoints_for_resource(%Discovery.RestResource{methods: nil, resources: nested_resources}) do
-      endpoints_for_resources(nested_resources)
+    defp endpoints_for_resource(%Discovery.RestResource{methods: nil, resources: nested_resources}, tag) do
+      endpoints_for_resources(nested_resources, tag)
     end
-    defp endpoints_for_resource(%Discovery.RestResource{methods: methods, resources: nested_resources}) do
-      Map.values(methods) ++ endpoints_for_resources(nested_resources)
+    defp endpoints_for_resource(%Discovery.RestResource{methods: methods, resources: nested_resources}, tag) do
+      endpoints =
+        methods
+        |> Map.values
+        |> Enum.map(fn method -> {tag, method} end)
+
+      endpoints ++ endpoints_for_resources(nested_resources, tag)
     end
 
     defp add_upload_endpoints(paths, _, []), do: paths
@@ -343,9 +348,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
     defp add_resumable_upload(
            paths,
-           %Discovery.RestMethod{
-             mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{resumable: %{path: path}}}
-           } = endpoint,
+           {
+             tag,
+             %Discovery.RestMethod{
+               mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{resumable: %{path: path}}}
+             } = endpoint
+           },
            global_parameter_refs
          ) do
       Logger.info("Adding endpoint: #{path}")
@@ -360,7 +368,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
             description: "Successful response"
           }),
         parameters: resumable_upload_parameters(endpoint),
-        tags: endpoint_tags(endpoint)
+        tags: [tag]
       }
 
       path_item =
@@ -376,9 +384,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
     defp add_simple_upload(
            paths,
-           %Discovery.RestMethod{
-             mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{simple: %{path: path}}}
-           } = endpoint,
+           {
+             tag,
+             %Discovery.RestMethod{
+               mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{simple: %{path: path}}}
+             } = endpoint
+           },
            global_parameter_refs
          ) do
       Logger.info("Adding endpoint: #{path}")
@@ -390,7 +401,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         security: endpoint_security(endpoint),
         responses: endpoint_responses(endpoint.response),
         parameters: simple_upload_parameters(endpoint),
-        tags: endpoint_tags(endpoint)
+        tags: [tag]
       }
 
       endpoint =
@@ -410,14 +421,14 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       Map.put(openapi, :basePath, "/")
     end
 
-    defp map_endpoint(%Discovery.RestMethod{id: operation_id} = endpoint) do
+    defp map_endpoint(%Discovery.RestMethod{id: operation_id} = endpoint, tag) do
       %OpenApi.Operation{
         description: endpoint.description,
         operationId: operation_id,
         security: endpoint_security(endpoint),
         responses: endpoint_responses(endpoint.response),
         parameters: endpoint_parameters(endpoint),
-        tags: endpoint_tags(endpoint)
+        tags: [tag]
       }
     end
 
@@ -572,22 +583,6 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         else
           params
       end
-    end
-
-    defp endpoint_tags(%Discovery.RestMethod{id: operation_id}) do
-      [tag_from_operation_id(operation_id)]
-    end
-    defp tag_from_operation_id(operation_id) do
-      operation_id
-      |> String.split(".", trim: true)
-      |> IO.inspect
-      |> tag_from_operation_id_parts
-      |> IO.inspect
-    end
-    def tag_from_operation_id_parts([]), do: nil
-    def tag_from_operation_id_parts([_]), do: nil
-    def tag_from_operation_id_parts([candidate | rest]) do
-      tag_from_operation_id_parts(rest) || candidate
     end
 
     defp add_external_docs(openapi, %Discovery.RestDescription{documentationLink: url}) do

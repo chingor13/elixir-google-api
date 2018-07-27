@@ -83,7 +83,8 @@ defmodule GoogleApis.ConverterTest do
                }
              },
              "tags" => [
-               %{"name" => "objects"}
+               %{"name" => "objects"},
+               %{"name" => "projects"}
              ],
              "externalDocs" => %{
                "url" => "https://github.com/GoogleCloudPlatform/elixir-google-api"
@@ -105,6 +106,7 @@ defmodule GoogleApis.ConverterTest do
     assert_simple_upload_path(paths)
     assert_resumable_upload_path(paths)
     assert_definitions(definitions)
+    assert_nested_path(paths)
   end
 
   defp assert_integer_path(paths) do
@@ -395,5 +397,12 @@ defmodule GoogleApis.ConverterTest do
              },
              "type" => "object"
            } = nested_container
+  end
+
+  defp assert_nested_path(paths) do
+    assert {:ok, path} = Map.fetch(paths, "/test/v1/projects/{projectId}/serviceAccount")
+    assert_global_path_parameters(path)
+    assert {:ok, operation} = Map.fetch(path, "get")
+    assert {:ok, ["projects"]} = Map.fetch(operation, "tags")
   end
 end
