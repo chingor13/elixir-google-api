@@ -289,8 +289,9 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
       paths =
         endpoints
-        |> Enum.reduce(%OpenApi.Paths{}, fn {tag, %Discovery.RestMethod{path: path, httpMethod: method} =
-                                              endpoint},
+        |> Enum.reduce(%OpenApi.Paths{}, fn {tag,
+                                             %Discovery.RestMethod{path: path, httpMethod: method} =
+                                               endpoint},
                                             acc ->
           full_path =
             if supports_media_upload do
@@ -304,7 +305,11 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           acc
           |> Map.put_new(full_path, %OpenApi.PathItem{parameters: global_parameter_refs})
           |> Map.update!(full_path, fn path_item ->
-            Map.put(path_item, String.to_atom(String.downcase(method)), map_endpoint(endpoint, tag))
+            Map.put(
+              path_item,
+              String.to_atom(String.downcase(method)),
+              map_endpoint(endpoint, tag)
+            )
           end)
         end)
         |> add_upload_endpoints(global_parameter_refs, media_upload_endpoints)
@@ -315,23 +320,39 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp find_all_endpoints(nil), do: nil
+
     defp find_all_endpoints(resources) do
       resources
-      |> Enum.map(fn {resource_name, resource} -> endpoints_for_resource(resource, resource_name) end)
+      |> Enum.map(fn {resource_name, resource} ->
+        endpoints_for_resource(resource, resource_name)
+      end)
       |> List.flatten()
     end
+
     defp endpoints_for_resources(nil, _), do: []
+
     defp endpoints_for_resources(resources, tag) do
-      Enum.map(resources, fn {_subresource_name, resource} -> endpoints_for_resource(resource, tag) end)
+      Enum.map(resources, fn {_subresource_name, resource} ->
+        endpoints_for_resource(resource, tag)
+      end)
     end
+
     defp endpoints_for_resource(nil), do: []
-    defp endpoints_for_resource(%Discovery.RestResource{methods: nil, resources: nested_resources}, tag) do
+
+    defp endpoints_for_resource(
+           %Discovery.RestResource{methods: nil, resources: nested_resources},
+           tag
+         ) do
       endpoints_for_resources(nested_resources, tag)
     end
-    defp endpoints_for_resource(%Discovery.RestResource{methods: methods, resources: nested_resources}, tag) do
+
+    defp endpoints_for_resource(
+           %Discovery.RestResource{methods: methods, resources: nested_resources},
+           tag
+         ) do
       endpoints =
         methods
-        |> Map.values
+        |> Map.values()
         |> Enum.map(fn method -> {tag, method} end)
 
       endpoints ++ endpoints_for_resources(nested_resources, tag)
@@ -351,7 +372,9 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
            {
              tag,
              %Discovery.RestMethod{
-               mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{resumable: %{path: path}}}
+               mediaUpload: %Discovery.RestMethodMediaUpload{
+                 protocols: %{resumable: %{path: path}}
+               }
              } = endpoint
            },
            global_parameter_refs
@@ -455,19 +478,35 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       })
     end
 
-    defp endpoint_parameters(%Discovery.RestMethod{
+    defp default_endpoint_parameters(%Discovery.RestMethod{
            parameterOrder: parameter_order,
-           parameters: parameter_config,
-           request: request,
-           description: description
+           parameters: parameter_config
          }) do
       parameter_order = parameter_order || []
-      parameter_config = parameter_config || []
+      parameter_config = parameter_config || %{}
 
-      params =
-        Enum.map(parameter_order, fn name ->
+      optional_order =
+        parameter_config
+        |> Map.split(parameter_order)
+        |> elem(1)
+        |> Map.keys()
+        |> Enum.sort()
+
+      Enum.map(parameter_order, fn name ->
+        map_parameter(name, Map.fetch!(parameter_config, name))
+      end) ++
+        Enum.map(optional_order, fn name ->
           map_parameter(name, Map.fetch!(parameter_config, name))
         end)
+    end
+
+    defp endpoint_parameters(
+           %Discovery.RestMethod{
+             request: request,
+             description: description
+           } = method
+         ) do
+      params = default_endpoint_parameters(method)
 
       params =
         if request do
@@ -489,18 +528,13 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       params
     end
 
-    defp simple_upload_parameters(%Discovery.RestMethod{
-           parameterOrder: parameter_order,
-           parameters: parameter_config,
-           request: request
-         }) do
-      parameter_order = parameter_order || []
-      parameter_config = parameter_config || []
-
+    defp simple_upload_parameters(
+           %Discovery.RestMethod{
+             request: request
+           } = method
+         ) do
       params =
-        Enum.map(parameter_order, fn name ->
-          map_parameter(name, Map.fetch!(parameter_config, name))
-        end) ++
+        default_endpoint_parameters(method) ++
           [
             %OpenApi.Parameter{
               description: "Upload type. Must be \"multipart\".",
@@ -544,18 +578,13 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         ]
     end
 
-    defp resumable_upload_parameters(%Discovery.RestMethod{
-           parameterOrder: parameter_order,
-           parameters: parameter_config,
-           request: request
-         }) do
-      parameter_order = parameter_order || []
-      parameter_config = parameter_config || []
-
+    defp resumable_upload_parameters(
+           %Discovery.RestMethod{
+             request: request
+           } = method
+         ) do
       params =
-        Enum.map(parameter_order, fn name ->
-          map_parameter(name, Map.fetch!(parameter_config, name))
-        end) ++
+        default_endpoint_parameters(method) ++
           [
             %OpenApi.Parameter{
               description: "Upload type. Must be \"resumable\".",
@@ -580,8 +609,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
               }
             }
           ]
-        else
-          params
+      else
+        params
       end
     end
 
