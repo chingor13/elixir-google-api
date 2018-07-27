@@ -218,8 +218,7 @@
           },
           "parameterOrder": [
             "bucket",
-            "id",
-            "category"
+            "id"
           ],
           "response": {
             "$ref": "Container"
@@ -319,7 +318,6 @@
             }
           },
           "parameterOrder": [
-            "name"
           ],
           "request": {
             "$ref": "Container"
