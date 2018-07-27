@@ -24,41 +24,12 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     output = ApiConfig.openapi_spec_file(api_config)
     Logger.info("Converting #{file} to #{output}")
 
-    # |> IO.inspect
     openapi =
       file
       |> File.read!()
       |> Poison.decode!(as: %RestDescription{})
       |> OpenApi2.from_gdd()
       |> Poison.encode!()
-
-    # |> IO.inspect
-
-    # IO.inspect openapi.definitions
-    # IO.inspect openapi.paths
-    # IO.inspect openapi.parameters
-    # IO.inspect openapi.securityDefinitions
-    # IO.inspect openapi.security
-    # IO.inspect openapi.tags
-    # IO.inspect(openapi["definitions"])
-
-    # if File.exists?(output) do
-    #   existing =
-    #     output
-    #     |> File.read!()
-    #     |> Jason.decode!()
-
-    #   Enum.each(["parameters", "securityDefinitions", "externalDocs", "paths"], fn location ->
-    #     control = existing[location]
-    #     sample = openapi[location]
-    #     if Map.equal?(control, sample) do
-    #       IO.puts "same #{location}"
-    #     else
-    #       MapDiff.diff(control, sample)
-    #       |> IO.inspect
-    #     end
-    #   end)
-    # end
 
     File.write(output, openapi)
 
@@ -68,11 +39,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
   defmodule OpenApi2 do
     require Logger
 
-    # alias GoogleApi.Discovery.V1.Model.{JsonSchema,RestDescription}
     alias GoogleApi.Discovery.V1.Model, as: Discovery
     alias OpenApi.V2.Model, as: OpenApi
-
-    # alias OpenApi.V2.Model.{Swagger,Info,Contact,License,Definitions,Schema,ExternalDocumentation,Tag,SecurityScheme,Scopes,SecurityDefinitions,Items}
 
     @spec from_gdd(Discovery.RestDescription.t()) :: Swagger.t()
     def from_gdd(%Discovery.RestDescription{} = gdd) do
@@ -110,10 +78,13 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
     defp add_host_info(openapi, %Discovery.RestDescription{baseUrl: base_url}) do
       %URI{host: host, path: base_path, scheme: scheme, port: port} = URI.parse(base_url)
-      host_string = case URI.default_port(scheme) do
-        ^port -> host
-        _ -> "#{host}:#{port}"
-      end
+
+      host_string =
+        case URI.default_port(scheme) do
+          ^port -> host
+          _ -> "#{host}:#{port}"
+        end
+
       %{openapi | host: host_string, basePath: base_path, schemes: [scheme]}
     end
 
@@ -296,7 +267,10 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       Map.put(openapi, :tags, [])
     end
 
-    defp add_paths(%OpenApi.Swagger{basePath: base_path, parameters: parameters} = openapi, %Discovery.RestDescription{resources: resources}) do
+    defp add_paths(
+           %OpenApi.Swagger{basePath: base_path, parameters: parameters} = openapi,
+           %Discovery.RestDescription{resources: resources}
+         ) do
       global_parameter_refs =
         parameters
         |> Map.from_struct()
@@ -315,16 +289,21 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         Enum.filter(endpoints, fn endpoint ->
           Map.get(endpoint, :supportsMediaUpload)
         end)
+
       supports_media_upload = !Enum.empty?(media_upload_endpoints)
 
       paths =
         endpoints
-        |> Enum.reduce(%OpenApi.Paths{}, fn %Discovery.RestMethod{path: path, httpMethod: method} = endpoint, acc ->
-          full_path = if supports_media_upload do
-            Path.join(base_path, path)
-          else
-            path
-          end
+        |> Enum.reduce(%OpenApi.Paths{}, fn %Discovery.RestMethod{path: path, httpMethod: method} =
+                                              endpoint,
+                                            acc ->
+          full_path =
+            if supports_media_upload do
+              Path.join(base_path, path)
+            else
+              path
+            end
+
           acc
           |> Map.put_new(full_path, %OpenApi.PathItem{parameters: global_parameter_refs})
           |> Map.update!(full_path, fn path_item ->
@@ -339,6 +318,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
     end
 
     defp add_upload_endpoints(paths, _, []), do: paths
+
     defp add_upload_endpoints(paths, global_parameter_refs, [method | rest]) do
       paths
       |> add_resumable_upload(method, global_parameter_refs)
@@ -346,29 +326,44 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       |> add_upload_endpoints(global_parameter_refs, rest)
     end
 
-    defp add_resumable_upload(paths, %Discovery.RestMethod{mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{resumable: %{path: path}}}} = endpoint, global_parameter_refs) do
+    defp add_resumable_upload(
+           paths,
+           %Discovery.RestMethod{
+             mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{resumable: %{path: path}}}
+           } = endpoint,
+           global_parameter_refs
+         ) do
       operation = %OpenApi.Operation{
         consumes: ["multipart/form-data"],
         description: endpoint.description,
         operationId: "#{endpoint.id}.resumable",
         security: endpoint_security(endpoint),
-        responses: Map.put(%OpenApi.Responses{}, "200", %OpenApi.Response{
+        responses:
+          Map.put(%OpenApi.Responses{}, "200", %OpenApi.Response{
             description: "Successful response"
           }),
         parameters: resumable_upload_parameters(endpoint),
         tags: endpoint_tags(endpoint)
       }
 
-      path_item = %OpenApi.PathItem{
-        parameters: global_parameter_refs
-      }
-      |> Map.put("post", operation)
+      path_item =
+        %OpenApi.PathItem{
+          parameters: global_parameter_refs
+        }
+        |> Map.put("post", operation)
 
       Map.put(paths, path, path_item)
     end
+
     defp add_resumable_upload(paths, _), do: paths
 
-    defp add_simple_upload(paths, %Discovery.RestMethod{mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{simple: %{path: path}}}} = endpoint, global_parameter_refs) do
+    defp add_simple_upload(
+           paths,
+           %Discovery.RestMethod{
+             mediaUpload: %Discovery.RestMethodMediaUpload{protocols: %{simple: %{path: path}}}
+           } = endpoint,
+           global_parameter_refs
+         ) do
       operation = %OpenApi.Operation{
         consumes: ["multipart/form-data"],
         description: endpoint.description,
@@ -379,16 +374,19 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
         tags: endpoint_tags(endpoint)
       }
 
-      endpoint = %OpenApi.PathItem{
-        parameters: global_parameter_refs
-      }
-      |> Map.put("post", operation)
+      endpoint =
+        %OpenApi.PathItem{
+          parameters: global_parameter_refs
+        }
+        |> Map.put("post", operation)
 
       Map.put(paths, path, endpoint)
     end
+
     defp add_simple_upload(paths, _), do: paths
 
     defp update_base_path(openapi, false), do: openapi
+
     defp update_base_path(openapi, true) do
       Map.put(openapi, :basePath, "/")
     end
@@ -455,6 +453,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
               }
             ]
       end
+
       params
     end
 
@@ -469,20 +468,21 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       params =
         Enum.map(parameter_order, fn name ->
           map_parameter(name, Map.fetch!(parameter_config, name))
-        end)
-        ++ [
-          %OpenApi.Parameter{
-            description: "Upload type. Must be \"multipart\".",
-            enum: ["multipart"],
-            in: "query",
-            name: "uploadType",
-            required: true,
-            type: "string"
-          }
-        ]
+        end) ++
+          [
+            %OpenApi.Parameter{
+              description: "Upload type. Must be \"multipart\".",
+              enum: ["multipart"],
+              in: "query",
+              name: "uploadType",
+              required: true,
+              type: "string"
+            }
+          ]
 
       if request do
         ref = Map.get(request, :"$ref")
+
         params =
           params ++
             [
@@ -498,42 +498,44 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
             ]
       end
 
-      params ++ [
-        %OpenApi.Parameter{
-          description: "The file to upload.",
-          in: "formData",
-          name: "data",
-          required: true,
-          type: "file"
-        }
-      ]
+      params ++
+        [
+          %OpenApi.Parameter{
+            description: "The file to upload.",
+            in: "formData",
+            name: "data",
+            required: true,
+            type: "file"
+          }
+        ]
     end
 
     defp resumable_upload_parameters(%Discovery.RestMethod{
-          parameterOrder: parameter_order,
-          parameters: parameter_config,
-          request: request
-        }) do
+           parameterOrder: parameter_order,
+           parameters: parameter_config,
+           request: request
+         }) do
       parameter_order = parameter_order || []
       parameter_config = parameter_config || []
 
       params =
         Enum.map(parameter_order, fn name ->
           map_parameter(name, Map.fetch!(parameter_config, name))
-        end)
-        ++ [
-          %OpenApi.Parameter{
-            description: "Upload type. Must be \"resumable\".",
-            enum: ["resumable"],
-            in: "query",
-            name: "uploadType",
-            required: true,
-            type: "string"
-          }
-        ]
+        end) ++
+          [
+            %OpenApi.Parameter{
+              description: "Upload type. Must be \"resumable\".",
+              enum: ["resumable"],
+              in: "query",
+              name: "uploadType",
+              required: true,
+              type: "string"
+            }
+          ]
 
       if request do
         ref = Map.get(request, :"$ref")
+
         params =
           params ++
             [
