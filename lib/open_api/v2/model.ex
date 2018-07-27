@@ -31,7 +31,7 @@ defimpl Jason.Encoder,
   ] do
   def encode(struct, opts) do
     struct
-    |> Map.from_struct
+    |> Map.from_struct()
     |> Enum.filter(fn {_k, v} -> v != nil end)
     |> Enum.into(%{})
     |> Jason.Encode.map(opts)

@@ -31,7 +31,7 @@ end
 
 defimpl Poison.Decoder, for: OpenApi.V2.Model.ParametersDefinitions do
   def decode(value, options) do
-    OpenApi.V2.Model.Parameters.decode(value, options)
+    OpenApi.V2.Model.ParametersDefinitions.decode(value, options)
   end
 end
 

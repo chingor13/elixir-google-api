@@ -280,7 +280,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
       endpoints =
         resources
-        |> Enum.map(fn {resource_name, %Discovery.RestResource{methods: methods} = resource} ->
+        |> Enum.map(fn {_resource_name, %Discovery.RestResource{methods: methods}} ->
           Map.values(methods)
         end)
         |> List.flatten()
@@ -303,6 +303,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
             else
               path
             end
+
+          Logger.info("Adding endpoint: #{full_path}")
 
           acc
           |> Map.put_new(full_path, %OpenApi.PathItem{parameters: global_parameter_refs})
@@ -333,6 +335,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
            } = endpoint,
            global_parameter_refs
          ) do
+      Logger.info("Adding endpoint: #{path}")
+
       operation = %OpenApi.Operation{
         consumes: ["multipart/form-data"],
         description: endpoint.description,
@@ -355,7 +359,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       Map.put(paths, path, path_item)
     end
 
-    defp add_resumable_upload(paths, _), do: paths
+    defp add_resumable_upload(paths, _, _), do: paths
 
     defp add_simple_upload(
            paths,
@@ -364,6 +368,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
            } = endpoint,
            global_parameter_refs
          ) do
+      Logger.info("Adding endpoint: #{path}")
+
       operation = %OpenApi.Operation{
         consumes: ["multipart/form-data"],
         description: endpoint.description,
@@ -383,7 +389,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       Map.put(paths, path, endpoint)
     end
 
-    defp add_simple_upload(paths, _), do: paths
+    defp add_simple_upload(paths, _, _), do: paths
 
     defp update_base_path(openapi, false), do: openapi
 
@@ -439,8 +445,8 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           map_parameter(name, Map.fetch!(parameter_config, name))
         end)
 
-      if request do
-        params =
+      params =
+        if request do
           params ++
             [
               %OpenApi.Parameter{
@@ -452,7 +458,9 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
                 }
               }
             ]
-      end
+        else
+          params
+        end
 
       params
     end
@@ -480,10 +488,10 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
             }
           ]
 
-      if request do
-        ref = Map.get(request, :"$ref")
+      params =
+        if request do
+          ref = Map.get(request, :"$ref")
 
-        params =
           params ++
             [
               %OpenApi.Parameter{
@@ -496,7 +504,9 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
                 }
               }
             ]
-      end
+        else
+          params
+        end
 
       params ++
         [
@@ -536,21 +546,22 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       if request do
         ref = Map.get(request, :"$ref")
 
-        params =
-          params ++
-            [
-              %OpenApi.Parameter{
-                in: "body",
-                name: "body",
-                schema: %OpenApi.Schema{
-                  :"$ref" => "#/definitions/#{ref}"
-                }
+        params ++
+          [
+            %OpenApi.Parameter{
+              in: "body",
+              name: "body",
+              schema: %OpenApi.Schema{
+                :"$ref" => "#/definitions/#{ref}"
               }
-            ]
+            }
+          ]
+        else
+          params
       end
     end
 
-    defp endpoint_tags(%Discovery.RestMethod{id: operation_id} = method) do
+    defp endpoint_tags(%Discovery.RestMethod{id: operation_id}) do
       [object | _rest] = String.split(operation_id, ".", trim: true)
       [object]
     end
