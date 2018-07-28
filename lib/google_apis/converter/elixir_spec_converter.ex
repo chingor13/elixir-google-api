@@ -502,8 +502,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
 
     defp endpoint_parameters(
            %Discovery.RestMethod{
-             request: request,
-             description: description
+             request: request
            } = method
          ) do
       params = default_endpoint_parameters(method)
@@ -513,7 +512,6 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
           params ++
             [
               %OpenApi.Parameter{
-                description: description,
                 in: "body",
                 name: "body",
                 schema: %OpenApi.Schema{
