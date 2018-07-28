@@ -300,7 +300,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
               path
             end
 
-          Logger.info("Adding endpoint: #{full_path}")
+          Logger.info("Converting endpoint: #{full_path}")
 
           acc
           |> Map.put_new(full_path, %OpenApi.PathItem{parameters: global_parameter_refs})
@@ -337,7 +337,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
       end)
     end
 
-    defp endpoints_for_resource(nil), do: []
+    defp endpoints_for_resource(nil, _), do: []
 
     defp endpoints_for_resource(
            %Discovery.RestResource{methods: nil, resources: nested_resources},
@@ -379,7 +379,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
            },
            global_parameter_refs
          ) do
-      Logger.info("Adding endpoint: #{path}")
+      Logger.info("Converting endpoint: #{path}")
 
       operation = %OpenApi.Operation{
         consumes: ["multipart/form-data"],
@@ -415,7 +415,7 @@ defmodule GoogleApis.Converter.ElixirSpecConverter do
            },
            global_parameter_refs
          ) do
-      Logger.info("Adding endpoint: #{path}")
+      Logger.info("Converting endpoint: #{path}")
 
       operation = %OpenApi.Operation{
         consumes: ["multipart/form-data"],
