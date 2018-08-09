@@ -29,7 +29,7 @@ log.debug(f"Cloning {repository_url}.")
 repository = git.clone(repository_url, depth=1)
 
 log.debug("Installing dependencies.")
-shell.run("npm install".split(), cwd=repository)
+shell.run("mix deps.get".split(), cwd=repository)
 
 log.debug("Generating all libraries.")
 shell.run("mix google_apis.generate Storage".split(), cwd=repository)
