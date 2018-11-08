@@ -67,6 +67,7 @@ defmodule GoogleApis.Generator.SwaggerCli do
   end
 
   defp run_docker_command(command) do
+    IO.inspect "running command: docker #{command}"
     case System.cmd("docker", String.split(command), stderr_to_stdout: true) do
       {output, 0} ->
         {:ok, String.trim_trailing(output)}
