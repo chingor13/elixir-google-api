@@ -40,8 +40,6 @@ defmodule GoogleApis.Generator.SwaggerCli do
   defp generate_code(filename, client_library_name) do
     tmp_dir = temp_path(client_library_name, Application.get_env(:google_apis, :tempdir))
     File.mkdir_p!(tmp_dir)
-    # IO.inspect File.exists?(tmp_dir)
-    # IO.inspect File.ls!(tmp_dir)
 
     with {:ok, volume_name} <- run_docker_command("volume create"),
          {:ok, _} <- run_docker_command("pull #{image()}"),
@@ -57,7 +55,6 @@ defmodule GoogleApis.Generator.SwaggerCli do
          {:ok, _} <- run_docker_command(generate_command),
          {:ok, _} <- run_docker_command("cp #{container}:/data/#{client_library_name} #{tmp_dir}"),
          {:ok, _} <- run_docker_command("rm #{container}") do
-      IO.inspect File.ls!(tmp_dir)
       {:ok, tmp_dir}
     else
       err -> err
@@ -72,14 +69,11 @@ defmodule GoogleApis.Generator.SwaggerCli do
   end
 
   defp run_docker_command(command) do
-    IO.inspect "running command: docker #{command}"
     case System.cmd("docker", String.split(command), stderr_to_stdout: true) do
       {output, 0} ->
-        IO.puts output
         {:ok, String.trim_trailing(output)}
 
       {output, exit_code} ->
-        IO.puts output
         {:error, "Exited with code #{exit_code}: " <> output}
     end
   end
