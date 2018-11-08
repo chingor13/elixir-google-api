@@ -39,6 +39,8 @@ defmodule GoogleApis.Generator.SwaggerCli do
 
   defp generate_code(filename, client_library_name) do
     tmp_dir = temp_path(client_library_name, Application.get_env(:google_apis, :tempdir))
+    IO.inspect File.exists?(tmp_dir)
+    IO.inspect File.ls!(tmp_dir)
 
     with {:ok, volume_name} <- run_docker_command("volume create"),
          {:ok, _} <- run_docker_command("pull #{image()}"),
