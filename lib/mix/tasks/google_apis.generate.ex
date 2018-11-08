@@ -29,10 +29,15 @@ defmodule Mix.Tasks.GoogleApis.Generate do
   defp builder(apis) do
     Enum.each(apis, fn api ->
       GoogleApis.fetch(api)
+      |> IO.inspect
       GoogleApis.convert_spec(api)
+      |> IO.inspect
       GoogleApis.generate_config(api)
+      |> IO.inspect
       GoogleApis.generate_client(api)
+      |> IO.inspect
       GoogleApis.format_client(api)
+      |> IO.inspect
     end)
   end
 end
