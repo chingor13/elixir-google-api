@@ -56,6 +56,7 @@ defmodule GoogleApis.Generator.SwaggerCli do
              client_library_name
            }",
          {:ok, _} <- run_docker_command(generate_command) do
+      IO.inspect File.ls!(tmp_dir)
       {:ok, tmp_dir}
     else
       err -> err
@@ -73,12 +74,12 @@ defmodule GoogleApis.Generator.SwaggerCli do
     IO.inspect "running command: docker #{command}"
     case System.cmd("docker", String.split(command), stderr_to_stdout: true) do
       {output, 0} ->
+        IO.puts output
         {:ok, String.trim_trailing(output)}
-        |> IO.inspect
 
       {output, exit_code} ->
+        IO.puts output
         {:error, "Exited with code #{exit_code}: " <> output}
-        |> IO.inspect
     end
   end
 
