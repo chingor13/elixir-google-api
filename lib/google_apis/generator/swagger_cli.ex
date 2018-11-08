@@ -39,6 +39,7 @@ defmodule GoogleApis.Generator.SwaggerCli do
 
   defp generate_code(filename, client_library_name) do
     tmp_dir = temp_path(client_library_name, Application.get_env(:google_apis, :tempdir))
+    File.mkdir_p!(tmp_dir)
     IO.inspect File.exists?(tmp_dir)
     IO.inspect File.ls!(tmp_dir)
 
