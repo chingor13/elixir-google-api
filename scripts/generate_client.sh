@@ -20,11 +20,11 @@ pushd $(dirname "$0")/../
 export TEMPLATE=gax
 
 # clean the codegen directory
-if [ -d .codegen ]; then
-    rm -rf .codegen
-fi
-mkdir -p .codegen
-export TEMPDIR=$(pwd)/.codegen
+# if [ -d .codegen ]; then
+#     rm -rf .codegen
+# fi
+# mkdir -p .codegen
+# export TEMPDIR=$(pwd)/.codegen
 
 # install npm dependencies
 npm install

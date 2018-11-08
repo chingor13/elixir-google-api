@@ -71,9 +71,11 @@ defmodule GoogleApis.Generator.SwaggerCli do
     case System.cmd("docker", String.split(command), stderr_to_stdout: true) do
       {output, 0} ->
         {:ok, String.trim_trailing(output)}
+        |> IO.inspect
 
       {output, exit_code} ->
         {:error, "Exited with code #{exit_code}: " <> output}
+        |> IO.inspect
     end
   end
 
