@@ -40,5 +40,5 @@ config :google_apis,
   tempdir: System.get_env("TEMPDIR")
 
 config :logger, :error,
-  level: error,
+  level: :error,
   trucate: :infinity
