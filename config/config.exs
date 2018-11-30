@@ -38,3 +38,7 @@ config :google_apis,
   oauth_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
   template: System.get_env("TEMPLATE") || "gax",
   tempdir: System.get_env("TEMPDIR")
+
+config :logger, :error,
+  level: error,
+  trucate: :infinity
