@@ -67,6 +67,7 @@ defmodule GoogleApis.Publisher do
       {output, exit_code} ->
         Logger.error "Failed with exit code #{exit_code}"
         Logger.error output
+        IO.puts output
         {:error, output}
     end
   end
