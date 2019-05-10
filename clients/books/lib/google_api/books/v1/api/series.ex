@@ -68,4 +68,54 @@ defmodule GoogleApi.Books.V1.Api.Series do
     |> Connection.execute(request)
     |> Response.decode(opts ++ [struct: %GoogleApi.Books.V1.Model.Series{}])
   end
+
+  @doc """
+  Returns Series membership data given the series id.
+
+  ## Parameters
+
+  - connection (GoogleApi.Books.V1.Connection): Connection to server
+  - series_id (String.t): String that identifies the series
+  - optional_params (keyword()): [optional] Optional parameters
+    - :alt (String.t): Data format for the response.
+    - :fields (String.t): Selector specifying which fields to include in a partial response.
+    - :key (String.t): API key. Your API key identifies your project and provides you with API access, quota, and reports. Required unless you provide an OAuth 2.0 token.
+    - :oauth_token (String.t): OAuth 2.0 token for the current user.
+    - :prettyPrint (boolean()): Returns response with indentations and line breaks.
+    - :quotaUser (String.t): An opaque string that represents a user for quota purposes. Must not exceed 40 characters.
+    - :userIp (String.t): Deprecated. Please use quotaUser instead.
+    - :page_size (integer()): Number of maximum results per page to be included in the response.
+    - :page_token (String.t): The value of the nextToken from the previous page.
+
+  ## Returns
+
+  {:ok, %GoogleApi.Books.V1.Model.Seriesmembership{}} on success
+  {:error, info} on failure
+  """
+  @spec books_series_membership_get(Tesla.Env.client(), String.t(), keyword()) ::
+          {:ok, GoogleApi.Books.V1.Model.Seriesmembership.t()} | {:error, Tesla.Env.t()}
+  def books_series_membership_get(connection, series_id, optional_params \\ [], opts \\ []) do
+    optional_params_config = %{
+      :alt => :query,
+      :fields => :query,
+      :key => :query,
+      :oauth_token => :query,
+      :prettyPrint => :query,
+      :quotaUser => :query,
+      :userIp => :query,
+      :page_size => :query,
+      :page_token => :query
+    }
+
+    request =
+      Request.new()
+      |> Request.method(:get)
+      |> Request.url("/series/membership/get", %{})
+      |> Request.add_param(:query, :series_id, series_id)
+      |> Request.add_optional_params(optional_params_config, optional_params)
+
+    connection
+    |> Connection.execute(request)
+    |> Response.decode(opts ++ [struct: %GoogleApi.Books.V1.Model.Seriesmembership{}])
+  end
 end
