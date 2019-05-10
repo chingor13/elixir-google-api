@@ -120,7 +120,7 @@ defmodule GoogleApi.Books.V1.Api.Myconfig do
       Request.new()
       |> Request.method(:post)
       |> Request.url("/myconfig/releaseDownloadAccess", %{})
-      |> Request.add_param(:query, :volume_ids, volumeIds)
+      |> Request.add_param(:query, :volumeIds, volume_ids)
       |> Request.add_param(:query, :cpksver, cpksver)
       |> Request.add_optional_params(optional_params_config, optional_params)
 
@@ -189,7 +189,7 @@ defmodule GoogleApi.Books.V1.Api.Myconfig do
       |> Request.method(:post)
       |> Request.url("/myconfig/requestAccess", %{})
       |> Request.add_param(:query, :source, source)
-      |> Request.add_param(:query, :volume_id, volumeId)
+      |> Request.add_param(:query, :volumeId, volume_id)
       |> Request.add_param(:query, :nonce, nonce)
       |> Request.add_param(:query, :cpksver, cpksver)
       |> Request.add_optional_params(optional_params_config, optional_params)
