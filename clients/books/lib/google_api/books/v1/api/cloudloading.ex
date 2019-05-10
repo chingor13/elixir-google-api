@@ -113,7 +113,7 @@ defmodule GoogleApi.Books.V1.Api.Cloudloading do
       Request.new()
       |> Request.method(:post)
       |> Request.url("/cloudloading/deleteBook", %{})
-      |> Request.add_param(:query, :volume_id, volumeId)
+      |> Request.add_param(:query, :volumeId, volume_id)
       |> Request.add_optional_params(optional_params_config, optional_params)
 
     connection
