@@ -116,7 +116,7 @@ defmodule GoogleApi.Books.V1.Api.Familysharing do
 
     connection
     |> Connection.execute(request)
-    |> Response.decode(opts ++ [struct: %{}])
+    |> Response.decode(opts ++ [decode: false])
   end
 
   @doc """
@@ -166,6 +166,6 @@ defmodule GoogleApi.Books.V1.Api.Familysharing do
 
     connection
     |> Connection.execute(request)
-    |> Response.decode(opts ++ [struct: %{}])
+    |> Response.decode(opts ++ [decode: false])
   end
 end
