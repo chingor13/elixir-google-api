@@ -46,7 +46,7 @@ defmodule GoogleApi.Books.V1.Api.Mylibrary do
   {:error, info} on failure
   """
   @spec books_mylibrary_annotations_delete(Tesla.Env.client(), String.t(), keyword()) ::
-          {:ok} | {:error, Tesla.Env.t()}
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_mylibrary_annotations_delete(
         connection,
         annotation_id,
@@ -330,7 +330,7 @@ defmodule GoogleApi.Books.V1.Api.Mylibrary do
           String.t(),
           String.t(),
           keyword()
-        ) :: {:ok} | {:error, Tesla.Env.t()}
+        ) :: {:ok, nil} | {:error, Tesla.Env.t()}
   def books_mylibrary_bookshelves_add_volume(
         connection,
         shelf,
@@ -387,7 +387,7 @@ defmodule GoogleApi.Books.V1.Api.Mylibrary do
   {:error, info} on failure
   """
   @spec books_mylibrary_bookshelves_clear_volumes(Tesla.Env.client(), String.t(), keyword()) ::
-          {:ok} | {:error, Tesla.Env.t()}
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_mylibrary_bookshelves_clear_volumes(
         connection,
         shelf,
@@ -543,7 +543,7 @@ defmodule GoogleApi.Books.V1.Api.Mylibrary do
           String.t(),
           integer(),
           keyword()
-        ) :: {:ok} | {:error, Tesla.Env.t()}
+        ) :: {:ok, nil} | {:error, Tesla.Env.t()}
   def books_mylibrary_bookshelves_move_volume(
         connection,
         shelf,
@@ -607,7 +607,7 @@ defmodule GoogleApi.Books.V1.Api.Mylibrary do
           String.t(),
           String.t(),
           keyword()
-        ) :: {:ok} | {:error, Tesla.Env.t()}
+        ) :: {:ok, nil} | {:error, Tesla.Env.t()}
   def books_mylibrary_bookshelves_remove_volume(
         connection,
         shelf,
@@ -796,7 +796,7 @@ defmodule GoogleApi.Books.V1.Api.Mylibrary do
           String.t(),
           String.t(),
           keyword()
-        ) :: {:ok} | {:error, Tesla.Env.t()}
+        ) :: {:ok, nil} | {:error, Tesla.Env.t()}
   def books_mylibrary_readingpositions_set_position(
         connection,
         volume_id,

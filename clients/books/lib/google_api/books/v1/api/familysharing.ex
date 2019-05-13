@@ -93,7 +93,7 @@ defmodule GoogleApi.Books.V1.Api.Familysharing do
   {:error, info} on failure
   """
   @spec books_familysharing_share(Tesla.Env.client(), keyword()) ::
-          {:ok} | {:error, Tesla.Env.t()}
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_familysharing_share(connection, optional_params \\ [], opts \\ []) do
     optional_params_config = %{
       :alt => :query,
@@ -143,7 +143,7 @@ defmodule GoogleApi.Books.V1.Api.Familysharing do
   {:error, info} on failure
   """
   @spec books_familysharing_unshare(Tesla.Env.client(), keyword()) ::
-          {:ok} | {:error, Tesla.Env.t()}
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_familysharing_unshare(connection, optional_params \\ [], opts \\ []) do
     optional_params_config = %{
       :alt => :query,

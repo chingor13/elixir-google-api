@@ -97,7 +97,7 @@ defmodule GoogleApi.Books.V1.Api.Cloudloading do
   {:error, info} on failure
   """
   @spec books_cloudloading_delete_book(Tesla.Env.client(), String.t(), keyword()) ::
-          {:ok} | {:error, Tesla.Env.t()}
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_cloudloading_delete_book(connection, volume_id, optional_params \\ [], opts \\ []) do
     optional_params_config = %{
       :alt => :query,
