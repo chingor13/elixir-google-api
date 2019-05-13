@@ -51,7 +51,8 @@ defmodule GoogleApi.Books.V1.Api.Promooffer do
   {:ok, %{}} on success
   {:error, info} on failure
   """
-  @spec books_promooffer_accept(Tesla.Env.client(), keyword()) :: {:ok} | {:error, Tesla.Env.t()}
+  @spec books_promooffer_accept(Tesla.Env.client(), keyword()) ::
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_promooffer_accept(connection, optional_params \\ [], opts \\ []) do
     optional_params_config = %{
       :alt => :query,
@@ -109,7 +110,8 @@ defmodule GoogleApi.Books.V1.Api.Promooffer do
   {:ok, %{}} on success
   {:error, info} on failure
   """
-  @spec books_promooffer_dismiss(Tesla.Env.client(), keyword()) :: {:ok} | {:error, Tesla.Env.t()}
+  @spec books_promooffer_dismiss(Tesla.Env.client(), keyword()) ::
+          {:ok, nil} | {:error, Tesla.Env.t()}
   def books_promooffer_dismiss(connection, optional_params \\ [], opts \\ []) do
     optional_params_config = %{
       :alt => :query,
