@@ -118,7 +118,7 @@ defmodule GoogleApi.Books.V1.Api.Cloudloading do
 
     connection
     |> Connection.execute(request)
-    |> Response.decode(opts ++ [struct: %{}])
+    |> Response.decode(opts ++ [decode: false])
   end
 
   @doc """
