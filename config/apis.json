@@ -265,11 +265,6 @@
     "url": "https://dlp.googleapis.com/$discovery/rest?version=v2"
   },
   {
-    "version": "v2beta1",
-    "name": "DLP",
-    "url": "https://dlp.googleapis.com/$discovery/rest?version=v2beta1"
-  },
-  {
     "version": "v1",
     "name": "DNS",
     "url": "https://www.googleapis.com/discovery/v1/apis/dns/v1/rest"
