@@ -26,10 +26,10 @@ import sys
 
 logging.basicConfig(level=logging.DEBUG)
 
-repository_url = "https://github.com/googleapis/elixir-google-api.git"
+repository_url = "https://github.com/chingor13/elixir-google-api.git"
 
 log.debug(f"Cloning {repository_url}.")
-repository = git.clone(repository_url, depth=1)
+repository = git.clone(repository_url, force=True, committish="run-as-user")
 
 image = "gcr.io/cloud-devrel-public-resources/elixir16"
 generate_command = "scripts/generate_client.sh"
@@ -40,7 +40,7 @@ command = [
     f"-v{repository}:/workspace",
     "-v/var/run/docker.sock:/var/run/docker.sock",
     "-w", "/workspace",
-    "--user", "442888:89939",
+    "-e", "USER_GROUP=442888:89939",
     image,
     generate_command]
 

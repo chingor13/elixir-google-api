@@ -21,21 +21,18 @@ export TEMPLATE=gax
 
 git clean -fdx clients
 
-# clean the codegen directory
-# if [ -d .codegen ]; then
-#     rm -rf .codegen
-# fi
-# mkdir -p .codegen
-# export TEMPDIR=$(pwd)/.codegen
-
 # install npm dependencies
-# npm install
+npm install
 
 # install dependencies
 mix deps.get
 
 # run generators
 mix google_apis.generate $1
+
+if [[ ! -z "${USER_GROUP}"]]; then
+    chown -R ${USER_GROUP} clients/
+fi
 
 # if there are changes, bump the version(s)
 OUTPUT=$(git status --porcelain)
