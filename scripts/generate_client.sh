@@ -29,7 +29,7 @@ git clean -fdx clients
 # export TEMPDIR=$(pwd)/.codegen
 
 # install npm dependencies
-npm install
+# npm install
 
 # install dependencies
 mix deps.get

@@ -40,6 +40,7 @@ command = [
     f"-v{repository}:/workspace",
     "-v/var/run/docker.sock:/var/run/docker.sock",
     "-w", "/workspace",
+    "--user", "442888:89939",
     image,
     generate_command]
 
